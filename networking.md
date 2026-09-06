@@ -388,6 +388,263 @@ amazon.com.		163	IN	A	98.82.161.185
 TTL is why DNS changes "take time to propagate" — caches everywhere hold the
 old answer until their TTL runs out.
 
+# Understanding DNS TTL (Time To Live)
+
+Every DNS record includes a **TTL (Time To Live)** value.
+
+TTL tells DNS resolvers:
+
+> "You may cache this DNS answer for this many seconds before requesting a fresh copy."
+
+---
+
+## Example
+
+### First Query
+
+```bash
+dig amazon.com | grep -m1 "^amazon"
+```
+
+Output:
+
+```text
+amazon.com.    166    IN    A    98.87.170.71
+```
+
+### Second Query (3 Seconds Later)
+
+```bash
+dig amazon.com | grep -m1 "^amazon"
+```
+
+Output:
+
+```text
+amazon.com.    163    IN    A    98.82.161.185
+```
+
+---
+
+## Breaking Down the Output
+
+```text
+amazon.com.    166    IN    A    98.87.170.71
+```
+
+| Field | Meaning |
+|---------|---------|
+| `amazon.com.` | Domain name |
+| `166` | TTL (Time To Live) in seconds |
+| `IN` | Internet record class |
+| `A` | IPv4 address record |
+| `98.87.170.71` | IP address returned by DNS |
+
+The most important field here is:
+
+```text
+166
+```
+
+This means:
+
+> The DNS response may be cached for another 166 seconds.
+
+---
+
+## Why Does the TTL Decrease?
+
+TTL acts like a countdown timer.
+
+### Initial Response
+
+```text
+TTL = 166
+```
+
+### Three Seconds Later
+
+```text
+TTL = 163
+```
+
+The value decreases because time has passed:
+
+```text
+166
+165
+164
+163
+...
+0
+```
+
+When the TTL reaches:
+
+```text
+0
+```
+
+the cached DNS record expires and a new DNS lookup must be performed.
+
+---
+
+## Visual Example
+
+### Time = 10:00:00
+
+```text
+amazon.com -> 98.87.170.71
+TTL = 166
+```
+
+### Time = 10:00:03
+
+```text
+amazon.com -> 98.87.170.71
+TTL = 163
+```
+
+The answer is still considered valid because the TTL has not yet expired.
+
+---
+
+## Why Did the IP Address Change?
+
+In the example, the returned IP address changed:
+
+```text
+amazon.com. 166 IN A 98.87.170.71
+```
+
+to
+
+```text
+amazon.com. 163 IN A 98.82.161.185
+```
+
+This is normal for large websites.
+
+Companies like Amazon use:
+
+- Multiple servers
+- Multiple IP addresses
+- Load balancing
+- Geographic routing
+- Content delivery networks (CDNs)
+
+For example:
+
+```text
+amazon.com
+├── 98.87.170.71
+├── 98.82.161.185
+├── 54.x.x.x
+└── many more...
+```
+
+DNS may return any of these valid addresses depending on location, load, and routing policies.
+
+---
+
+## Why TTL Exists
+
+Without DNS caching:
+
+```text
+Browser
+   |
+   v
+DNS Query
+   |
+   v
+DNS Server
+```
+
+A DNS lookup would occur for every request.
+
+With caching:
+
+```text
+First DNS Query
+       |
+       v
+Cache Result
+       |
+       v
+Reuse Cached Result Until TTL Expires
+```
+
+Benefits:
+
+- Faster application performance
+- Reduced DNS traffic
+- Lower load on DNS infrastructure
+
+---
+
+## Short vs Long TTL
+
+### Short TTL
+
+```text
+60 seconds
+```
+
+Advantages:
+
+✅ DNS changes propagate quickly
+
+Disadvantages:
+
+❌ More DNS queries
+
+---
+
+### Long TTL
+
+```text
+86400 seconds (1 day)
+```
+
+Advantages:
+
+✅ Fewer DNS queries
+
+✅ Better caching efficiency
+
+Disadvantages:
+
+❌ DNS changes take longer to propagate
+
+---
+
+## Key Takeaway
+
+When you see:
+
+```text
+amazon.com.    166    IN    A    98.87.170.71
+```
+
+the value:
+
+```text
+166
+```
+
+is the **TTL (Time To Live)**.
+
+It indicates how many seconds the DNS response may remain cached before another DNS lookup is required.
+
+As time passes, the TTL counts down:
+
+```text
+166 → 163 → 160 → ... → 0
+```
+
+Once the TTL reaches **0**, the cached record expires and a fresh DNS query is performed.
+
 ### 4.2 Local resolver vs public resolver
 
 Compare who answered — the `SERVER` line:
