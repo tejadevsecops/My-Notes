@@ -613,13 +613,99 @@ with a neighbour. Everything needed is in this document.
 
 1. How many CPU cores does the box have, and what is the current 5-minute
    load? Is that busy or idle?
-2. How much memory is *available* (not free)?
-3. Which filesystem has the least free space? Any inode problem anywhere?
-4. How many TCP connections are in TIME-WAIT right now? Should you worry?
-5. When did the last SSH login happen and from which IP? (journal, one command)
-6. Any kernel errors since boot? (one command)
-7. Which process owns port 22?
-8. Using the counting idiom, which program wrote the most journal lines in
+## Check CPU Cores and 5-Minute Load Average
+
+### Command
+
+```bash
+echo "Cores: $(nproc)" && uptime
+```
+
+### Example Output
+
+```text
+Cores: 8
+22:35:10 up 10 days, 3 users, load average: 1.25, 0.95, 0.80
+```
+
+### Interpretation
+
+- CPU Cores = **8**
+- 1-minute Load = **1.25**
+- 5-minute Load = **0.95**
+- 15-minute Load = **0.80**
+
+To estimate CPU utilization, compare the **5-minute load average** with the number of CPU cores:
+
+```text
+5-minute Load = 0.95
+CPU Cores = 8
+
+0.95 / 8 = 0.11875 ≈ 12%
+```
+
+**Result:** The system is **mostly idle**.
+
+---
+
+### Rule of Thumb
+
+| 5-Minute Load Average | System Status |
+|-----------------------|--------------|
+| Much less than CPU cores | Idle / Lightly Loaded |
+| Around 50% of CPU cores | Moderately Busy |
+| Close to CPU core count | Heavily Utilized |
+| Higher than CPU core count | Busy / Potentially Overloaded |
+
+### Examples
+
+#### Example 1: Idle System
+
+```text
+CPU Cores = 8
+5-minute Load = 1
+```
+
+Result:
+
+```text
+1 < 8
+```
+
+✅ System is mostly idle.
+
+---
+
+#### Example 2: Busy System
+
+```text
+CPU Cores = 8
+5-minute Load = 7.5
+```
+
+Result:
+
+```text
+7.5 ≈ 8
+```
+
+⚠️ System is heavily utilized.
+
+---
+
+#### Example 3: Overloaded System
+
+```text
+CPU Cores = 8
+5-minute Load
+   
+3. How much memory is *available* (not free)?
+4. Which filesystem has the least free space? Any inode problem anywhere?
+5. How many TCP connections are in TIME-WAIT right now? Should you worry?
+6. When did the last SSH login happen and from which IP? (journal, one command)
+7. Any kernel errors since boot? (one command)
+8. Which process owns port 22?
+9. Using the counting idiom, which program wrote the most journal lines in
    the last 200 entries?
 
 Target: all eight in under ten minutes. During the course we will repeat this
