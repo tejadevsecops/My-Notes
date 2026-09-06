@@ -663,6 +663,67 @@ Why compare? If the local resolver returns something different (or nothing)
 while 8.8.8.8 answers fine, the problem is your resolver, not the domain.
 That's a 30-second check that ends many "is DNS down?" debates.
 
+## Compare DNS Resolvers Using the `SERVER` Line
+
+### Default Resolver
+
+```bash
+dig amazon.com | grep -E "Query time|SERVER"
+```
+
+Example:
+
+```text
+;; Query time: 5 msec
+;; SERVER: 172.31.0.2#53(172.31.0.2)
+```
+
+### Google Public DNS
+
+```bash
+dig @8.8.8.8 amazon.com | grep -E "Query time|SERVER"
+```
+
+Example:
+
+```text
+;; Query time: 1 msec
+;; SERVER: 8.8.8.8#53(8.8.8.8)
+```
+
+### What the `SERVER` Line Shows
+
+The `SERVER` line identifies which DNS server answered your query.
+
+- `172.31.0.2` → Local/AWS VPC DNS Resolver
+- `8.8.8.8` → Google Public DNS
+
+### Why Compare?
+
+If your default resolver fails but Google DNS returns a valid answer:
+
+```text
+Local Resolver  -> Fails
+Google DNS      -> Works
+```
+
+✅ The domain is fine.
+
+❌ The problem is with your local DNS resolver.
+
+### Quick Troubleshooting Tip
+
+Run both commands and compare:
+
+- Did both return an answer?
+- Did both return the same IP address?
+- Which DNS server responded?
+- What was the query time?
+
+### Key Takeaway
+
+> Comparing your local DNS resolver with a known-good resolver such as `8.8.8.8` is a fast way to determine whether a DNS issue is caused by the domain itself or by your local DNS infrastructure.
+
 ### 4.3 CoreDNS in Kubernetes
 
 Inside the cluster, pods use **CoreDNS** (note the server 10.96.0.10 — a
