@@ -698,7 +698,8 @@ Result:
 ```text
 CPU Cores = 8
 5-minute Load
-   
+```
+ 
 3. How much memory is *available* (not free)?
 4. Which filesystem has the least free space? Any inode problem anywhere?
 5. How many TCP connections are in TIME-WAIT right now? Should you worry?
