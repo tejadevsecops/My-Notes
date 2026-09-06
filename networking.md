@@ -1037,6 +1037,150 @@ dashboards and users disagree ("app looks fine" / "site is down"), LB metrics
 settle the argument: 5xx count, backend response time, healthy-host count.
 In big incidents, check the edge first.
 
+## Understanding Load Balancers (L4 vs L7)
+
+### L4 Load Balancer (Layer 4)
+
+An L4 load balancer operates at the **TCP/UDP layer**.
+
+It only sees:
+
+- Source/Destination IPs
+- Source/Destination Ports
+
+Example:
+
+```text
+Client -> Port 80
+```
+
+✅ Fast and efficient
+
+✅ High performance
+
+❌ Cannot inspect HTTP requests or URLs
+
+---
+
+### L7 Load Balancer (Layer 7)
+
+An L7 load balancer understands **HTTP/HTTPS** traffic.
+
+It can route requests based on:
+
+- URL paths
+- Hostnames
+- Headers
+- Cookies
+
+Example:
+
+```text
+/api/upi/*   -> upi-service
+/api/loans/* -> loan-service
+```
+
+✅ Smart routing
+
+✅ SSL termination
+
+✅ HTTP retries
+
+✅ Can generate HTTP errors such as:
+
+```text
+502 Bad Gateway
+503 Service Unavailable
+504 Gateway Timeout
+```
+
+---
+
+## How It Applies to Our Stack
+
+### L4 Behavior
+
+```text
+Internet
+    ↓
+Server Port 80
+    ↓
+Kubernetes Cluster
+```
+
+Traffic is forwarded based only on TCP/IP information.
+
+---
+
+### L7 Behavior
+
+```text
+gateway-service
+```
+
+Routes requests by path:
+
+```text
+/api/upi/...   -> upi-service
+/api/loans/... -> loan-service
+```
+
+---
+
+## Why Load Balancer Metrics Matter
+
+The load balancer sees every request and response from the customer's perspective:
+
+```text
+Customer
+    ↓
+Load Balancer
+    ↓
+Application
+```
+
+Key metrics:
+
+- **5xx Error Count** (500, 502, 503, 504)
+- **Backend Response Time**
+- **Healthy Host Count**
+- **Timeouts**
+
+Example:
+
+```text
+Healthy Hosts: 0/5
+```
+
+indicates all backends are failing health checks.
+
+---
+
+## Troubleshooting Tip
+
+When users report:
+
+```text
+"The application is down."
+```
+
+Check load balancer metrics first:
+
+```text
+5xx Errors?
+Response Times?
+Healthy Hosts?
+Timeouts?
+```
+
+These metrics often provide the most accurate view of the customer experience.
+
+---
+
+## Key Takeaway
+
+> **L4 load balancers route TCP connections using IPs and ports. L7 load balancers understand HTTP and can route by URL, host, and headers. During incidents, load balancer metrics are often the best source of truth because they see every customer request and backend response.**
+
 ---
 
 ## 8. Hands-on
