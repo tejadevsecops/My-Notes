@@ -877,6 +877,112 @@ One more trap: a customer action often fans out to many services (in our app
 one UPI payment touches 5+). If each has a slow p99, the chance a customer
 hits at least one slow hop grows fast. Tail latency compounds.
 
+## Understanding Latency, Throughput, and Tail Latency
+
+### Key Terms
+
+- **Latency**: Time taken for a single request to complete.
+- **Throughput**: Number of requests processed per second.
+- **Tail Latency**: How long the slowest requests take.
+
+---
+
+## Why Percentiles Matter
+
+Latency is typically measured using **percentiles**:
+
+- **p50** (Median): 50% of requests were faster than this value.
+- **p95**: 95% of requests were faster than this value.
+- **p99**: 99% of requests were faster than this value.
+
+Example:
+
+```text
+p50 = 13 ms
+p95 = 15 ms
+max = 15 ms
+avg = 13 ms
+```
+
+✅ Healthy service: p50 and p95 are very close.
+
+---
+
+## Why Averages Can Be Misleading
+
+Suppose:
+
+```text
+19 requests = 13 ms
+1 request  = 2000 ms
+```
+
+Average:
+
+```text
+avg ≈ 112 ms
+```
+
+This doesn't reveal that one user waited **2 seconds**.
+
+Percentiles expose these slow requests, while averages often hide them.
+
+---
+
+## Healthy vs Unhealthy
+
+### Healthy
+
+```text
+p50 = 13 ms
+p95 = 15 ms
+p99 = 18 ms
+```
+
+Most users experience similar response times.
+
+### Unhealthy
+
+```text
+p50 = 13 ms
+p95 = 200 ms
+p99 = 2 s
+```
+
+Most users are fast, but some users experience significant delays.
+
+---
+
+## Tail Latency in Microservices
+
+A single customer action may call multiple services:
+
+```text
+Portal
+  ↓
+Kafka
+  ↓
+Fraud Service
+  ↓
+Oracle DB
+  ↓
+Notification Service
+```
+
+Even if each service is slow only 1% of the time (`p99`), the probability of hitting at least one slow component increases as more services are involved.
+
+This is known as:
+
+> **Tail latency compounds.**
+
+---
+
+## Key Takeaway
+
+> **Averages show overall performance, but percentiles show user experience.**
+>
+> That's why production SLOs and SLAs are typically based on **p95** and **p99** latency rather than average latency.
+
 ---
 
 ## 6. Network failure modes
