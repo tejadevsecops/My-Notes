@@ -705,8 +705,116 @@ CPU Cores = 8
 5. How many TCP connections are in TIME-WAIT right now? Should you worry?
 6. When did the last SSH login happen and from which IP? (journal, one command)
 7. Any kernel errors since boot? (one command)
-8. Which process owns port 22?
-9. Using the counting idiom, which program wrote the most journal lines in
+
+## Check for Kernel Errors Since Boot
+
+### Using `dmesg`
+
+#### Show All Kernel Messages
+
+```bash
+sudo dmesg -T
+```
+
+- `dmesg` displays the kernel ring buffer.
+- `-T` converts timestamps into a human-readable format.
+
+---
+
+#### Show Only Error-Related Messages
+
+```bash
+sudo dmesg -T | grep -i error
+```
+
+or
+
+```bash
+sudo dmesg -T --level=err,crit,alert,emerg
+```
+
+### Example Output
+
+```text
+[Sun Sep  6 09:12:15 2026] ACPI BIOS Error (bug): Failure creating named object
+```
+
+### Interpretation
+
+If the command returns entries, kernel errors have been logged.
+
+If no output is returned, no kernel errors matching the specified severity levels were found.
+
+---
+
+## `dmesg` vs `journalctl`
+
+### Using `dmesg`
+
+```bash
+sudo dmesg -T
+```
+
+#### Pros
+
+✅ Quick access to kernel messages
+
+✅ Available on most Linux distributions
+
+✅ Useful for troubleshooting hardware and driver issues
+
+#### Cons
+
+❌ May miss older messages if the kernel ring buffer has rotated
+
+❌ Typically shows only the current kernel buffer contents
+
+---
+
+### Using `journalctl`
+
+```bash
+journalctl -k -b -p err
+```
+
+#### Pros
+
+✅ Queries persistent kernel logs from the systemd journal
+
+✅ Filters directly by severity level
+
+✅ More reliable on modern systemd-based systems
+
+✅ Retains logs across reboots when persistent journaling is enabled
+
+#### Cons
+
+❌ Requires systemd
+
+❌ May require elevated privileges to view all messages
+
+---
+
+## Recommended Command
+
+For modern Linux systems using systemd:
+
+```bash
+journalctl -k -b -p err
+```
+
+For a quick check of the current kernel ring buffer:
+
+```bash
+sudo dmesg -T --level=err,crit,alert,emerg
+```
+
+### Rule of Thumb
+
+> Use `journalctl -k -b -p err` when you need a reliable view of kernel errors since boot. Use `dmesg -T` for fast, real-time kernel troubleshooting.
+
+9. Which process owns port 22?
+10. Using the counting idiom, which program wrote the most journal lines in
    the last 200 entries?
 
 Target: all eight in under ten minutes. During the course we will repeat this
