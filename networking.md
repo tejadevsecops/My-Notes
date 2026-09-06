@@ -279,7 +279,95 @@ Very few TIME_WAIT sockets
 
 ## Why Does TIME_WAIT Exist?
 
-When a 
+When a TCP connection is closed, the operating system does not immediately remove it.
+
+Instead, it places the connection into the `TIME_WAIT` state to:
+
+- Ensure delayed packets are discarded.
+- Prevent duplicate packets from affecting future connections.
+- Allow TCP to shut down cleanly.
+
+Therefore, a moderate number of `TIME_WAIT` connections is completely normal.
+
+---
+
+## Real-World Example
+
+Suppose an application handles:
+
+```text
+100 requests per second
+```
+
+### Without Pooling
+
+```text
+100 DB connections/sec opened
+100 DB connections/sec closed
+```
+
+After several minutes:
+
+```text
+20000+ TIME_WAIT
+```
+
+---
+
+### With Pooling
+
+```text
+Connection Pool Size = 20
+```
+
+The same 20 connections are reused:
+
+```text
+20 ESTAB
+Very few TIME_WAIT
+```
+
+This is much more efficient and reduces resource consumption.
+
+---
+
+## What to Look For During Troubleshooting
+
+Check TCP connection states:
+
+```bash
+ss -tan | awk 'NR>1 {print $1}' | sort | uniq -c | sort -rn
+```
+
+Example output:
+
+```text
+50000 TIME-WAIT
+200 ESTAB
+```
+
+This is often a red flag.
+
+Questions to ask:
+
+1. Is the application creating a new connection for every request?
+2. Is database connection pooling enabled?
+3. Is HTTP keep-alive disabled?
+4. Are clients repeatedly reconnecting?
+
+---
+
+## Rule of Thumb
+
+✅ A few hundred `TIME_WAIT` connections on a busy server is usually normal.
+
+⚠️ Thousands to tens of thousands of `TIME_WAIT` connections may indicate excessive connection creation and teardown.
+
+🚨 If every request creates a new database or HTTP connection, investigate connection pooling configuration.
+
+### Key Takeaway
+
+> Connection pooling improves performance by reusing existing connections. A large and continuously growing number of `TIME_WAIT` connections often indicates that connections are being opened and closed too frequently instead of being reused.
 
 ---
 
