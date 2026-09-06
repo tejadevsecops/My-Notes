@@ -1189,7 +1189,45 @@ Run these on the training server.
 
 1. The curl timing template against `http://localhost/`, then against
    `https://www.google.com`. Compare where the time goes (look at dns, tls).
-2. `mtr -r -c 3 -n 8.8.8.8` — real path out of AWS:
+
+## Compare Where Request Time Is Spent
+
+### Local Application
+
+```bash
+curl -s -o /dev/null \
+-w "DNS=%{time_namelookup}s Connect=%{time_connect}s TLS=%{time_appconnect}s TTFB=%{time_starttransfer}s Total=%{time_total}s\n" \
+http://localhost/
+```
+
+### External Website
+
+```bash
+curl -s -o /dev/null \
+-w "DNS=%{time_namelookup}s Connect=%{time_connect}s TLS=%{time_appconnect}s TTFB=%{time_starttransfer}s Total=%{time_total}s\n" \
+https://www.google.com/
+```
+
+### Key Metrics
+
+- `time_namelookup` → DNS lookup time
+- `time_connect` → TCP connection time
+- `time_appconnect` → TLS handshake time
+- `time_starttransfer` → Time to First Byte (TTFB)
+- `time_total` → Total request time
+
+### Troubleshooting
+
+- High `DNS` → DNS resolution problem
+- High `TLS` → SSL/TLS negotiation overhead
+- High `TTFB` → Slow application or backend
+- High `Total` → Overall request latency
+
+### Key Takeaway
+
+> Compare localhost and external sites to see whether time is being spent in DNS resolution, TCP connection setup, TLS negotiation, or application processing.
+
+3. `mtr -r -c 3 -n 8.8.8.8` — real path out of AWS:
 
 ```
 HOST: ip-172-31-24-168            Loss%   Snt   Last   Avg  Best  Wrst
