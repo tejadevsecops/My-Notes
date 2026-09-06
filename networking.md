@@ -745,6 +745,110 @@ Two things to notice:
 - The full name pattern is `<service>.<namespace>.svc.cluster.local`. From
   another namespace you'd write `kafka.bankobs`.
 
+
+## Understanding CoreDNS in Kubernetes
+
+### Check DNS Resolution Inside a Pod
+
+```bash
+kubectl -n bankobs exec deploy/web-portal -- nslookup kafka
+```
+
+Example Output:
+
+```text
+Server:   10.96.0.10
+Name:     kafka.bankobs.svc.cluster.local
+Address:  10.96.71.63
+```
+
+### Key Points
+
+#### 1. CoreDNS Handles Internal DNS
+
+```text
+Server: 10.96.0.10
+```
+
+This is the Kubernetes **CoreDNS** service, which resolves Kubernetes Services and Pods.
+
+---
+
+#### 2. Short Names Are Automatically Expanded
+
+Requested:
+
+```text
+kafka
+```
+
+Resolved to:
+
+```text
+kafka.bankobs.svc.cluster.local
+```
+
+Kubernetes uses DNS search domains, allowing applications to use simple hostnames:
+
+```text
+kafka:9092
+oracle:1521
+redis:6379
+```
+
+instead of full DNS names.
+
+---
+
+#### 3. Kubernetes Service DNS Format
+
+```text
+<service>.<namespace>.svc.cluster.local
+```
+
+Example:
+
+```text
+kafka.bankobs.svc.cluster.local
+```
+
+Where:
+
+```text
+kafka     = Service name
+bankobs   = Namespace
+svc       = Service domain
+cluster.local = Cluster DNS domain
+```
+
+---
+
+### Cross-Namespace Access
+
+From the same namespace:
+
+```text
+kafka
+```
+
+From a different namespace:
+
+```text
+kafka.bankobs
+```
+
+or
+
+```text
+kafka.bankobs.svc.cluster.local
+```
+
+---
+
+### Key Takeaway
+
+> CoreDNS provides automatic DNS resolution for Kubernetes Services. Pods in the same namespace can typically use short names like `kafka`, while the full DNS name follows the format `<service>.<namespace>.svc.cluster.local`.
+
 ---
 
 ## 5. Latency: percentiles, not averages
