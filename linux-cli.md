@@ -95,177 +95,6 @@ $ sudo journalctl -u sshd -n 1 -o json | jq .
 }
 ```
 
-Step-by-step Breakdown
-1. sudo journalctl -n 200 -o json
-sudo → Run with elevated privileges.
-journalctl → View logs from the systemd journal.
--n 200 → Retrieve the last 200 log entries.
--o json → Output each log entry in JSON format.
-
-Example JSON log entry:
-
-JSON
-1
-{
-2
-"_PID":"1234",
-3
-"PRIORITY":"6",
-4
-"SYSLOG_IDENTIFIER":"sshd",
-5
-"MESSAGE":"Accepted password for user"
-6
-}
-Show more lines
-2. jq -r 'select(.PRIORITY=="6") | .SYSLOG_IDENTIFIER'
-
-jq processes the JSON logs.
-
-select(.PRIORITY=="6")
-
-Keeps only entries whose priority is 6.
-
-Common syslog priorities:
-
-Priority	Meaning0	Emergency
-1	Alert
-2	Critical
-3	Error
-4	Warning
-5	Notice
-6	Informational
-7	Debug
-
-So this filters for normal informational messages.
-
-.SYSLOG_IDENTIFIER
-
-Extracts the application/service name that generated the log.
-
-Example output:
-
-Plain Text
-1
-sshd
-2
-NetworkManager
-3
-sshd
-4
-systemd
-5
-cron
-6
-sshd
-Show more lines
--r
-
-Outputs raw text instead of JSON strings.
-
-3. sort
-
-Sorts the identifiers alphabetically.
-
-Plain Text
-1
-NetworkManager
-2
-cron
-3
-sshd
-4
-sshd
-5
-sshd
-6
-systemd
-Show more lines
-4. uniq -c
-
-Counts identical adjacent lines.
-
-Plain Text
-1
-1 NetworkManager
-2
-1 cron
-3
-3 sshd
-4
-1 systemd
-Show more lines
-5. sort -rn
-
-Sorts numerically (-n) and in reverse order (-r).
-
-Final output:
-
-Plain Text
-1
-3 sshd
-2
-1 systemd
-3
-1 cron
-4
-1 NetworkManager
-Show more lines
-Example Real-Life Output
-Plain Text
-1
-85 sshd
-2
-42 systemd
-3
-27 kernel
-4
-18 cron
-5
-12 NetworkManager
-6
-7 sudo
-Show more lines
-
-Meaning:
-
-sshd produced 85 informational log messages.
-systemd produced 42.
-kernel produced 27.
-And so on.
-Why use this?
-
-This command is useful for:
-
-Identifying which services are generating the most informational logs.
-Troubleshooting excessive logging.
-Understanding activity on a server.
-Quickly summarizing recent journal activity without reading every message.
-
-For example, if you suddenly see:
-
-Plain Text
-1
-150 sshd
-Show more lines
-
-it could indicate a lot of SSH login activity. If you see:
-
-Plain Text
-1
-300 nginx
-Show more lines
-
-your web server may be generating many informational events.
-
-In short
-Shell
-1
-sudo journalctl -n 200 -o json | jq -r 'select(.PRIORITY=="6") | .SYSLOG_IDENTIFIER' | sort | uniq -c | sort -rn
-Show more lines
-
-Looks at the last 200 journal log entries, keeps only informational (priority 6) messages, groups them by the service/application that generated them, counts how many each produced, and lists the results from highest to lowest count.
-
 **Kernel only (`-k`)** — same as `dmesg`, but with timestamps you can trust:
 
 ```
@@ -515,6 +344,184 @@ $ sudo journalctl -n 200 -o json | jq -r 'select(.PRIORITY=="6") | .SYSLOG_IDENT
      13 sudo
       8 systemd
 ```
+
+# Understanding the Command
+
+```bash
+sudo journalctl -n 200 -o json | jq -r 'select(.PRIORITY=="6") | .SYSLOG_IDENTIFIER' | sort | uniq -c | sort -rn
+```
+
+This command analyzes the last 200 systemd journal entries, filters informational messages, groups them by service name, counts them, and sorts the results by frequency.
+
+## Step 1: Get the Last 200 Journal Entries
+
+```bash
+sudo journalctl -n 200 -o json
+```
+
+- `sudo` → Run with elevated privileges.
+- `journalctl` → View logs from the systemd journal.
+- `-n 200` → Retrieve the last **200 log entries**.
+- `-o json` → Output each log entry in JSON format.
+
+Example JSON log entry:
+
+```json
+{
+  "_PID": "1234",
+  "PRIORITY": "6",
+  "SYSLOG_IDENTIFIER": "sshd",
+  "MESSAGE": "Accepted password for user"
+}
+```
+
+---
+
+## Step 2: Filter Informational Messages
+
+```bash
+jq -r 'select(.PRIORITY=="6") | .SYSLOG_IDENTIFIER'
+```
+
+### What it does
+
+- `jq` processes JSON output.
+- `select(.PRIORITY=="6")` keeps only informational log messages.
+- `.SYSLOG_IDENTIFIER` extracts the application or service name.
+- `-r` outputs raw text.
+
+### Syslog Priorities
+
+| Priority | Meaning |
+|-----------|----------|
+| 0 | Emergency |
+| 1 | Alert |
+| 2 | Critical |
+| 3 | Error |
+| 4 | Warning |
+| 5 | Notice |
+| 6 | Informational |
+| 7 | Debug |
+
+Example output:
+
+```text
+sshd
+NetworkManager
+sshd
+systemd
+cron
+sshd
+```
+
+---
+
+## Step 3: Sort Service Names
+
+```bash
+sort
+```
+
+Output:
+
+```text
+NetworkManager
+cron
+sshd
+sshd
+sshd
+systemd
+```
+
+---
+
+## Step 4: Count Identical Entries
+
+```bash
+uniq -c
+```
+
+Output:
+
+```text
+1 NetworkManager
+1 cron
+3 sshd
+1 systemd
+```
+
+---
+
+## Step 5: Sort by Count (Descending)
+
+```bash
+sort -rn
+```
+
+Output:
+
+```text
+3 sshd
+1 systemd
+1 cron
+1 NetworkManager
+```
+
+---
+
+## Real-Life Example
+
+```text
+85 sshd
+42 systemd
+27 kernel
+18 cron
+12 NetworkManager
+7 sudo
+```
+
+### Meaning
+
+- `sshd` produced 85 informational log messages.
+- `systemd` produced 42 informational log messages.
+- `kernel` produced 27 informational log messages.
+- `cron` produced 18 informational log messages.
+- `NetworkManager` produced 12 informational log messages.
+
+---
+
+## Why Use This Command?
+
+This command helps you:
+
+- Identify which services generate the most informational logs.
+- Troubleshoot excessive logging.
+- Understand recent server activity.
+- Summarize log activity quickly.
+
+Example:
+
+```text
+150 sshd
+```
+
+May indicate significant SSH login activity.
+
+```text
+300 nginx
+```
+
+May indicate heavy web server activity.
+
+---
+
+## Summary
+
+```bash
+sudo journalctl -n 200 -o json | jq -r 'select(.PRIORITY=="6") | .SYSLOG_IDENTIFIER' | sort | uniq -c | sort -rn
+```
+
+**Looks at the last 200 journal entries, keeps only informational (priority 6) messages, groups them by service name, counts how many each service generated, and displays the counts from highest to lowest.**
 
 The three jq moves that cover 90% of use:
 
