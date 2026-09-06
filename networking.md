@@ -123,6 +123,164 @@ open Oracle connections and requests borrow one. Remember the TIME_WAIT pile
 from B1? An app that *doesn't* reuse connections generates one TIME_WAIT per
 request. When you see tens of thousands of them, someone forgot pooling.
 
+# Understanding Connection Pooling and TIME_WAIT
+
+Applications often communicate with databases using TCP connections. Creating a new database connection for every request is expensive and can lead to a large number of `TIME_WAIT` connections.
+
+---
+
+## Without Connection Pooling
+
+For every incoming request, the application:
+
+1. Opens a new database connection.
+2. Executes a query.
+3. Closes the database connection.
+
+### Example
+
+```text
+Request 1
+  -> Open Oracle connection
+  -> Run query
+  -> Close connection
+
+Request 2
+  -> Open Oracle connection
+  -> Run query
+  -> Close connection
+
+Request 3
+  -> Open Oracle connection
+  -> Run query
+  -> Close connection
+```
+
+If the application receives 10,000 requests:
+
+```text
+10,000 connections opened
+10,000 connections closed
+```
+
+Each closed TCP connection enters the `TIME_WAIT` state for a period of time.
+
+As a result, you may observe:
+
+```text
+15000 TIME-WAIT
+```
+
+or
+
+```text
+50000 TIME-WAIT
+```
+
+This is called **connection churn**.
+
+---
+
+## With Connection Pooling
+
+Instead of creating and destroying connections for every request, the application maintains a pool of reusable connections.
+
+### Example Pool
+
+```text
+Connection 1
+Connection 2
+Connection 3
+...
+Connection 10
+```
+
+When a request arrives:
+
+```text
+Request 1
+  -> Borrow Connection 3
+  -> Run query
+  -> Return Connection 3 to pool
+
+Request 2
+  -> Borrow Connection 7
+  -> Run query
+  -> Return Connection 7 to pool
+```
+
+Notice that connections are **reused** rather than closed.
+
+### Result
+
+```text
+10 connections opened
+10 connections remain available
+Thousands of requests served
+```
+
+Very few new `TIME_WAIT` sockets are created.
+
+---
+
+## Visual Comparison
+
+### Without Pooling
+
+```text
+User Request
+      |
+      v
+Open DB Connection
+      |
+      v
+Run Query
+      |
+      v
+Close Connection
+      |
+      v
+TIME_WAIT
+```
+
+For 1,000 requests:
+
+```text
+1,000 TIME_WAIT sockets
+```
+
+---
+
+### With Pooling
+
+```text
+           +----------------+
+Request -->| Existing Pool  |
+           +----------------+
+                   |
+                   v
+             Reuse Connection
+                   |
+                   v
+              Return to Pool
+```
+
+For 1,000 requests:
+
+```text
+Pool Size: 10
+
+Thousands of requests served
+Only 10 active connections maintained
+Very few TIME_WAIT sockets
+```
+
+---
+
+## Why Does TIME_WAIT Exist?
+
+When a 
+
 ---
 
 ## 4. DNS
